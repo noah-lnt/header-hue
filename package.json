@@ -33,12 +33,25 @@
     "configuration": {
       "title": "HeaderHue",
       "properties": {
+        "headerHue.mode": {
+          "type": "string",
+          "enum": [
+            "pale",
+            "bright"
+          ],
+          "enumDescriptions": [
+            "Soft, light title bar that stays in the background.",
+            "Deep saturated title bar with white text."
+          ],
+          "default": "pale",
+          "description": "Which color family to use for the title bar."
+        },
         "headerHue.intensity": {
           "type": "number",
           "default": 50,
           "minimum": 0,
           "maximum": 100,
-          "markdownDescription": "How strong the title bar color is. `0` is barely tinted, `50` is the default pastel, `100` is fully saturated. Title bar text stays readable at every value."
+          "markdownDescription": "How strong the color is *within* the chosen `#headerHue.mode#`, from `0` (softest) to `100` (strongest). Title bar text stays readable at every value."
         }
       }
     }
