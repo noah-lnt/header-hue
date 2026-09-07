@@ -1,6 +1,6 @@
 # HeaderHue
 
-Automatically assigns a unique, consistent color to your VS Code title bar based on your project folder name. Instantly distinguish between workspaces at a glance, with zero configuration.
+Automatically assigns a unique, consistent color to your VS Code title bar based on your project folder name. Instantly distinguish between workspaces at a glance, with no configuration required.
 
 ## How it works
 
@@ -8,22 +8,26 @@ Automatically assigns a unique, consistent color to your VS Code title bar based
 2. Generates a deterministic color from it (same folder = same color, always)
 3. Applies it to the title bar — active and inactive states
 
-Colors are soft pastels, spread evenly around the hue circle so neighbouring
-projects stay easy to tell apart. Title bar text is always derived to meet
-WCAG AA contrast against its own background.
+Colors are spread evenly around the hue circle so neighboring projects stay
+easy to tell apart, and identity uses both the hue and one of three brightness
+tiers. By default the bar is a soft pastel; see Settings to make it bolder.
 
 ## Settings
 
 | Setting | Default | Description |
 |---|---|---|
-| `headerHue.intensity` | `50` | How strong the title bar color is, from `0` (barely tinted) to `100` (fully saturated). |
+| `headerHue.mode` | `pale` | `pale` for a soft, light title bar; `bright` for a deep saturated bar with white text. |
+| `headerHue.intensity` | `50` | How strong the color is *within* the chosen mode, from `0` (softest) to `100` (strongest). |
 
-Set it once in your user settings and it applies to every project. Changes take
-effect immediately — no reload.
+Set them once in your user settings and they apply to every project. Changes
+take effect immediately — no reload.
 
-Title bar text always meets WCAG AA contrast, whatever the intensity. Note that
-very low values make projects harder to tell apart, since near-white tints leave
-little room for colors to differ.
+Title bar text always meets WCAG AA contrast. In `pale` mode the text is a deep
+tint of the bar's own hue; in `bright` mode it is white, and backgrounds are
+pinned to a constant perceived brightness so white stays readable on every hue.
+
+Note that very low intensity in `pale` mode makes projects harder to tell apart,
+since near-white tints leave little room for colors to differ.
 
 ## Installation
 

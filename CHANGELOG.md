@@ -4,9 +4,14 @@
 
 ### Added
 
+- `headerHue.mode` setting: `pale` (default) keeps the soft light title bar,
+  `bright` gives a deep saturated bar with white text, close to the look before
+  0.2.0.
 - `headerHue.intensity` setting (0–100, default 50) to control how strong the
-  title bar color is. Set it in your user settings and it applies everywhere.
-  Changes apply immediately, without reloading the window.
+  color is within the chosen mode.
+
+Both apply immediately, without reloading the window. The defaults reproduce
+0.2.0 colors exactly, so upgrading changes nothing until you change a setting.
 
 ### Fixed
 
