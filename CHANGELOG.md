@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0 — 2026-09-07
+
+### Added
+
+- `headerHue.intensity` setting (0–100, default 50) to control how strong the
+  title bar color is. Set it in your user settings and it applies everywhere.
+  Changes apply immediately, without reloading the window.
+
+### Fixed
+
+- Saturation and lightness are clamped before conversion, and channels are
+  clamped to 0–255. At the extremes of the intensity range the accumulated
+  jitter and tier offsets could otherwise push a channel past 255 and emit a
+  malformed value such as `#106107104`.
+
 ## 0.2.0 — 2026-09-07
 
 ### Changed

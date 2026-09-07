@@ -2,7 +2,7 @@
   "name": "headerhue",
   "displayName": "HeaderHue",
   "description": "Dynamic VS Code header color based on your project folder name.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "NOLANSARL",
   "license": "MIT",
   "repository": {
@@ -28,5 +28,19 @@
     "@types/node": "^25.3.0",
     "@types/vscode": "^1.75.0",
     "typescript": "^5.0.0"
+  },
+  "contributes": {
+    "configuration": {
+      "title": "HeaderHue",
+      "properties": {
+        "headerHue.intensity": {
+          "type": "number",
+          "default": 50,
+          "minimum": 0,
+          "maximum": 100,
+          "markdownDescription": "How strong the title bar color is. `0` is barely tinted, `50` is the default pastel, `100` is fully saturated. Title bar text stays readable at every value."
+        }
+      }
+    }
   }
 }
