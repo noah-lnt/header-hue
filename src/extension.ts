@@ -1,18 +1,44 @@
 import * as vscode from "vscode";
 import * as path from "path";
 
-// Pale envelope: high lightness keeps the title bar a background, not an accent.
-// Chroma stays around half the original saturated palette — enough separation
-// between projects without the bar competing with the editor.
-const SATURATION = 0.62;
-const LIGHTNESS = 0.79;
+// Intensity 0 = barely tinted, 100 = fully saturated. The middle anchor is the
+// shipped default and must stay exactly where it is: changing it would repaint
+// every existing project on upgrade.
+const ANCHORS = [
+  { at: 0, saturation: 0.25, lightness: 0.86, tierSpread: 0.05 },
+  { at: 50, saturation: 0.62, lightness: 0.79, tierSpread: 0.09 },
+  { at: 100, saturation: 0.94, lightness: 0.55, tierSpread: 0.13 },
+];
+
+const DEFAULT_INTENSITY = 50;
 
 // Lightness tiers add a second axis of identity. Hue alone gives 360 slots, and
 // at ~100 projects that collides constantly; hue x tier makes near-misses rare.
 const TIERS = 3;
-const TIER_SPREAD = 0.09;
 
 const AA_CONTRAST = 4.6;
+
+type Envelope = { saturation: number; lightness: number; tierSpread: number };
+
+function lerp(a: number, b: number, k: number): number {
+  return a + (b - a) * k;
+}
+
+function envelopeFor(intensity: number): Envelope {
+  const t = Math.min(100, Math.max(0, intensity));
+  const upperIndex = Math.max(
+    1,
+    ANCHORS.findIndex((anchor) => anchor.at >= t)
+  );
+  const upper = ANCHORS[upperIndex];
+  const lower = ANCHORS[upperIndex - 1];
+  const k = (t - lower.at) / (upper.at - lower.at);
+  return {
+    saturation: lerp(lower.saturation, upper.saturation, k),
+    lightness: lerp(lower.lightness, upper.lightness, k),
+    tierSpread: lerp(lower.tierSpread, upper.tierSpread, k),
+  };
+}
 
 function hash32(str: string, seed: number): number {
   let hash = seed;
@@ -22,7 +48,14 @@ function hash32(str: string, seed: number): number {
   return hash >>> 0;
 }
 
-function hslToHex(h: number, s: number, l: number): string {
+function clamp01(v: number): number {
+  return Math.min(1, Math.max(0, v));
+}
+
+function hslToHex(hue: number, sat: number, light: number): string {
+  const h = ((hue % 360) + 360) % 360;
+  const s = clamp01(sat);
+  const l = clamp01(light);
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
@@ -34,7 +67,9 @@ function hslToHex(h: number, s: number, l: number): string {
     h < 300 ? [x, 0, c] :
     [c, 0, x];
   const channel = (v: number) =>
-    Math.round((v + m) * 255).toString(16).padStart(2, "0");
+    Math.min(255, Math.max(0, Math.round((v + m) * 255)))
+      .toString(16)
+      .padStart(2, "0");
   return `#${channel(r)}${channel(g)}${channel(b)}`;
 }
 
@@ -53,8 +88,9 @@ function contrastRatio(a: string, b: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-// Darken the tinted text until it clears AA against its own background, so
-// readability holds for every hue instead of relying on one hand-picked value.
+// Darken the tinted text until it clears AA against its own background. At high
+// intensity the background itself goes dark and no dark text can clear it, so
+// fall back to searching upward for light text.
 function readableText(hue: number, saturation: number, background: string): string {
   for (let l = 0.42; l >= 0.02; l -= 0.02) {
     const candidate = hslToHex(hue, saturation, l);
@@ -62,7 +98,15 @@ function readableText(hue: number, saturation: number, background: string): stri
       return candidate;
     }
   }
-  return "#000000";
+  for (let l = 0.58; l <= 0.98; l += 0.02) {
+    const candidate = hslToHex(hue, saturation, l);
+    if (contrastRatio(background, candidate) >= AA_CONTRAST) {
+      return candidate;
+    }
+  }
+  return contrastRatio(background, "#ffffff") >= contrastRatio(background, "#000000")
+    ? "#ffffff"
+    : "#000000";
 }
 
 // Perceived lightness is not flat across the hue circle: yellows (~60deg) read
@@ -71,16 +115,17 @@ function hueLightnessOffset(hue: number): number {
   return Math.cos(((hue - 260) * Math.PI) / 180) * 0.045;
 }
 
-function paletteFor(name: string) {
+function paletteFor(name: string, intensity: number) {
+  const envelope = envelopeFor(intensity);
   const hue = hash32(name, 5381) % 360;
   const jitter = hash32(name, 52711) % 100;
   const tier = hash32(name, 99991) % TIERS;
 
-  const saturation = SATURATION + (jitter / 100) * 0.12 - 0.06;
+  const saturation = envelope.saturation + (jitter / 100) * 0.12 - 0.06;
   const lightness =
-    LIGHTNESS +
+    envelope.lightness +
     hueLightnessOffset(hue) +
-    (tier - (TIERS - 1) / 2) * TIER_SPREAD;
+    (tier - (TIERS - 1) / 2) * envelope.tierSpread;
 
   const background = hslToHex(hue, saturation, lightness);
   // Inactive fades toward white rather than darkening - dimming a pastel
@@ -103,14 +148,18 @@ function paletteFor(name: string) {
   };
 }
 
-export function activate(context: vscode.ExtensionContext) {
+function applyColors() {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
     return;
   }
 
+  const intensity = vscode.workspace
+    .getConfiguration("headerHue")
+    .get<number>("intensity", DEFAULT_INTENSITY);
+
   const folderName = path.basename(folders[0].uri.fsPath);
-  const palette = paletteFor(folderName);
+  const palette = paletteFor(folderName, intensity);
 
   const config = vscode.workspace.getConfiguration("workbench");
   const existing = config.get<Record<string, string>>("colorCustomizations") ?? {};
@@ -125,6 +174,18 @@ export function activate(context: vscode.ExtensionContext) {
       "titleBar.inactiveForeground": palette.inactiveForeground,
     },
     vscode.ConfigurationTarget.Workspace
+  );
+}
+
+export function activate(context: vscode.ExtensionContext) {
+  applyColors();
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("headerHue.intensity")) {
+        applyColors();
+      }
+    })
   );
 }
 
