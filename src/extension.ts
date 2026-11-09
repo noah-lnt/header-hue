@@ -38,6 +38,7 @@ const TIERS = 3;
 const AA_CONTRAST = 4.6;
 
 const DEFAULT_ORG_LEVEL = 0;
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const ORG_MARKER_STATE = "orgMarkerApplied";
 const STATUS_BAR_KEYS = [
   "statusBar.background",
@@ -144,9 +145,32 @@ function readableText(hue: number, saturation: number, background: string): stri
       return candidate;
     }
   }
+  return blackOrWhite(background);
+}
+
+function blackOrWhite(background: string): string {
   return contrastRatio(background, "#ffffff") >= contrastRatio(background, "#000000")
     ? "#ffffff"
     : "#000000";
+}
+
+function mixHex(from: string, to: string, k: number): string {
+  const channel = (i: number) =>
+    Math.round(lerp(parseInt(from.slice(i, i + 2), 16), parseInt(to.slice(i, i + 2), 16), k))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${channel(1)}${channel(3)}${channel(5)}`;
+}
+
+// The hover color moves away from the text color, so it only gains contrast.
+function fixedPalette(background: string): Palette {
+  const foreground = blackOrWhite(background);
+  return {
+    background,
+    foreground,
+    inactiveBackground: mixHex(background, foreground === "#ffffff" ? "#000000" : "#ffffff", 0.2),
+    inactiveForeground: foreground,
+  };
 }
 
 // Perceived lightness is not flat across the hue circle: yellows (~60deg) read
@@ -273,11 +297,17 @@ async function applyColors(state: vscode.Memento) {
   const mode = settings.get<Mode>("mode", DEFAULT_MODE);
   const intensity = settings.get<number>("intensity", DEFAULT_INTENSITY);
   const orgLevel = settings.get<number>("orgLevel", DEFAULT_ORG_LEVEL);
+  const orgColors = settings.get<Record<string, string>>("orgColors", {});
 
   const folderPath = folders[0].uri.fsPath;
   const palette = paletteFor(path.basename(folderPath), mode, intensity);
   const orgName = orgNameOf(folderPath, orgLevel);
-  const marker = orgName ? paletteFor(orgName, mode, intensity) : undefined;
+  const orgColor = orgName ? orgColors[orgName] : undefined;
+  const marker = !orgName
+    ? undefined
+    : orgColor && HEX_COLOR.test(orgColor)
+      ? fixedPalette(orgColor.toLowerCase())
+      : paletteFor(orgName, mode, intensity);
 
   const config = vscode.workspace.getConfiguration("workbench");
   const existing = config.get<Record<string, string>>("colorCustomizations") ?? {};
