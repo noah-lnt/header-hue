@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `headerHue.orgColors` setting: a fixed status bar color per organization
+  folder, such as a brand color, instead of the generated one. Text turns
+  black or white for contrast.
+
 ## 0.5.0 — 2026-11-09
 
 ### Added

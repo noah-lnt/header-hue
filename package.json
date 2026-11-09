@@ -58,6 +58,16 @@
           "default": 0,
           "minimum": 0,
           "markdownDescription": "Colors the status bar after a folder above the project, so every project in that folder shares one color. `1` is the parent folder, `2` its parent, and so on; `0` turns it off. A project at another depth can override it in its workspace settings."
+        },
+        "headerHue.orgColors": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "patternErrorMessage": "Use a 6-digit hex color, like #e30513."
+          },
+          "markdownDescription": "Fixed status bar colors for the folders found by `#headerHue.orgLevel#`, keyed by folder name, e.g. `{ \"acme\": \"#e30513\" }`. The text turns black or white, whichever reads better. Folders not listed keep their generated color."
         }
       }
     }
