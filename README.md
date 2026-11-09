@@ -18,9 +18,20 @@ tiers. By default the bar is a soft pastel; see Settings to make it bolder.
 |---|---|---|
 | `headerHue.mode` | `pale` | `pale` for a soft, light title bar; `bright` for a deep saturated bar with white text. |
 | `headerHue.intensity` | `50` | How strong the color is *within* the chosen mode, from `0` (softest) to `100` (strongest). |
+| `headerHue.orgLevel` | `0` | Colors the status bar after a folder above the project: `1` is the parent folder, `2` its parent. `0` turns it off. |
 
 Set them once in your user settings and they apply to every project. Changes
 take effect immediately — no reload.
+
+### Org marker
+
+When projects are grouped by organization, such as
+`~/Documents/acme/Projects/website`, set `headerHue.orgLevel` to the number of
+levels between a project and its organization folder (`2` here). The status
+bar then takes a color from that folder's name, shared by every project inside
+it, while the title bar keeps the project's own color. A project at another
+depth, like `~/Documents/acme/api`, sets its own value in its workspace
+settings.
 
 Title bar text always meets WCAG AA contrast. In `pale` mode the text is a deep
 tint of the bar's own hue; in `bright` mode it is white, and backgrounds are
