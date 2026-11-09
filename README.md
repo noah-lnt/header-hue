@@ -18,24 +18,17 @@ tiers. By default the bar is a soft pastel; see Settings to make it bolder.
 |---|---|---|
 | `headerHue.mode` | `pale` | `pale` for a soft, light title bar; `bright` for a deep saturated bar with white text. |
 | `headerHue.intensity` | `50` | How strong the color is *within* the chosen mode, from `0` (softest) to `100` (strongest). |
-| `headerHue.orgLevel` | `0` | Colors the status bar after a folder above the project: `1` is the parent folder, `2` its parent. `0` turns it off. |
-| `headerHue.orgColors` | `{}` | Fixed status bar colors by organization folder name, e.g. `{ "acme": "#e30513" }`. |
+| `headerHue.orgColors` | `{}` | Fixed status bar colors by organization folder name, e.g. `{ "acme": "#e30513" }`, matched at any depth. |
+| `headerHue.orgLevel` | `0` | Generated status bar color from a folder above the project: `1` is the parent folder, `2` its parent. `0` turns it off. |
 
 Set them once in your user settings and they apply to every project. Changes
 take effect immediately — no reload.
 
 ### Org marker
 
-When projects are grouped by organization, such as
-`~/Documents/acme/Projects/website`, set `headerHue.orgLevel` to the number of
-levels between a project and its organization folder (`2` here). The status
-bar then takes a color from that folder's name, shared by every project inside
-it, while the title bar keeps the project's own color. A project at another
-depth, like `~/Documents/acme/api`, sets its own value in its workspace
-settings.
-
-Generated colors can land close together when you have several
-organizations. To use each one's brand color instead, list them by folder name:
+When projects are grouped by organization, the status bar can show which one a
+project belongs to, while the title bar keeps the project's own color. List
+each organization folder with its color, such as a brand color:
 
 ```json
 "headerHue.orgColors": {
@@ -44,9 +37,16 @@ organizations. To use each one's brand color instead, list them by folder name:
 }
 ```
 
-A listed color is used exactly as given, whatever the mode and intensity, with
-black or white text, whichever contrasts more. Folders not listed keep their
-generated color.
+Every project inside a listed folder takes its color, at any depth:
+`~/Documents/acme/api` and `~/Documents/acme/Projects/website` both get
+`#e30513`. When folders are nested, the nearest listed one wins. The color is
+used exactly as given, whatever the mode and intensity, with black or white
+text, whichever contrasts more.
+
+For organizations you haven't listed, `headerHue.orgLevel` generates a color
+from the folder that many levels above the project: `2` for
+`~/Documents/acme/Projects/website`. Generated colors can land close together
+when you have several organizations, so prefer listing them.
 
 Title bar text always meets WCAG AA contrast. In `pale` mode the text is a deep
 tint of the bar's own hue; in `bright` mode it is white, and backgrounds are
