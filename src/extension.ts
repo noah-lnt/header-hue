@@ -37,6 +37,15 @@ const TIERS = 3;
 
 const AA_CONTRAST = 4.6;
 
+const DEFAULT_ORG_LEVEL = 0;
+const ORG_MARKER_STATE = "orgMarkerApplied";
+const STATUS_BAR_KEYS = [
+  "statusBar.background",
+  "statusBar.foreground",
+  "statusBarItem.hoverBackground",
+  "statusBarItem.hoverForeground",
+];
+
 type Anchor = { at: number; saturation: number; lightness: number; tierSpread: number };
 type BrightAnchor = { at: number; saturation: number; luminance: number };
 type Envelope = { saturation: number; lightness: number; tierSpread: number };
@@ -239,7 +248,22 @@ function paletteFor(name: string, mode: Mode, intensity: number): Palette {
     : palePalette(name, intensity);
 }
 
-function applyColors() {
+function orgNameOf(folderPath: string, level: number): string | undefined {
+  if (level < 1) {
+    return undefined;
+  }
+  let dir = folderPath;
+  for (let i = 0; i < level; i++) {
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      return undefined;
+    }
+    dir = parent;
+  }
+  return path.basename(dir) || undefined;
+}
+
+async function applyColors(state: vscode.Memento) {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
     return;
@@ -248,33 +272,47 @@ function applyColors() {
   const settings = vscode.workspace.getConfiguration("headerHue");
   const mode = settings.get<Mode>("mode", DEFAULT_MODE);
   const intensity = settings.get<number>("intensity", DEFAULT_INTENSITY);
+  const orgLevel = settings.get<number>("orgLevel", DEFAULT_ORG_LEVEL);
 
-  const folderName = path.basename(folders[0].uri.fsPath);
-  const palette = paletteFor(folderName, mode, intensity);
+  const folderPath = folders[0].uri.fsPath;
+  const palette = paletteFor(path.basename(folderPath), mode, intensity);
+  const orgName = orgNameOf(folderPath, orgLevel);
+  const marker = orgName ? paletteFor(orgName, mode, intensity) : undefined;
 
   const config = vscode.workspace.getConfiguration("workbench");
   const existing = config.get<Record<string, string>>("colorCustomizations") ?? {};
+  const colors: Record<string, string> = {
+    ...existing,
+    "titleBar.activeBackground": palette.background,
+    "titleBar.activeForeground": palette.foreground,
+    "titleBar.inactiveBackground": palette.inactiveBackground,
+    "titleBar.inactiveForeground": palette.inactiveForeground,
+  };
 
-  config.update(
-    "colorCustomizations",
-    {
-      ...existing,
-      "titleBar.activeBackground": palette.background,
-      "titleBar.activeForeground": palette.foreground,
-      "titleBar.inactiveBackground": palette.inactiveBackground,
-      "titleBar.inactiveForeground": palette.inactiveForeground,
-    },
-    vscode.ConfigurationTarget.Workspace
-  );
+  if (marker) {
+    Object.assign(colors, {
+      "statusBar.background": marker.background,
+      "statusBar.foreground": marker.foreground,
+      "statusBarItem.hoverBackground": marker.inactiveBackground,
+      "statusBarItem.hoverForeground": marker.inactiveForeground,
+    });
+  } else if (state.get<boolean>(ORG_MARKER_STATE)) {
+    for (const key of STATUS_BAR_KEYS) {
+      delete colors[key];
+    }
+  }
+
+  await config.update("colorCustomizations", colors, vscode.ConfigurationTarget.Workspace);
+  await state.update(ORG_MARKER_STATE, marker !== undefined);
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  applyColors();
+  applyColors(context.workspaceState);
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("headerHue")) {
-        applyColors();
+        applyColors(context.workspaceState);
       }
     })
   );
