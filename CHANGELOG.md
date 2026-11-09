@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- `headerHue.orgColors` now applies to every project inside a listed folder, at
+  any depth, without `headerHue.orgLevel`. It used to match only the folder
+  exactly `orgLevel` levels up, so projects sitting directly in an
+  organization folder got a generated color instead of the listed one.
+
 ## 0.6.0 — 2026-11-09
 
 ### Added

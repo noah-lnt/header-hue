@@ -287,6 +287,18 @@ function orgNameOf(folderPath: string, level: number): string | undefined {
   return path.basename(dir) || undefined;
 }
 
+function listedOrgColor(folderPath: string, orgColors: Record<string, unknown>): string | undefined {
+  for (let dir = folderPath; ; dir = path.dirname(dir)) {
+    const color = orgColors[path.basename(dir)];
+    if (typeof color === "string" && HEX_COLOR.test(color)) {
+      return color.toLowerCase();
+    }
+    if (path.dirname(dir) === dir) {
+      return undefined;
+    }
+  }
+}
+
 async function applyColors(state: vscode.Memento) {
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
@@ -297,17 +309,17 @@ async function applyColors(state: vscode.Memento) {
   const mode = settings.get<Mode>("mode", DEFAULT_MODE);
   const intensity = settings.get<number>("intensity", DEFAULT_INTENSITY);
   const orgLevel = settings.get<number>("orgLevel", DEFAULT_ORG_LEVEL);
-  const orgColors = settings.get<Record<string, string>>("orgColors", {});
+  const orgColors = settings.get<Record<string, unknown>>("orgColors", {});
 
   const folderPath = folders[0].uri.fsPath;
   const palette = paletteFor(path.basename(folderPath), mode, intensity);
+  const listedColor = listedOrgColor(folderPath, orgColors);
   const orgName = orgNameOf(folderPath, orgLevel);
-  const orgColor = orgName ? orgColors[orgName] : undefined;
-  const marker = !orgName
-    ? undefined
-    : orgColor && HEX_COLOR.test(orgColor)
-      ? fixedPalette(orgColor.toLowerCase())
-      : paletteFor(orgName, mode, intensity);
+  const marker = listedColor
+    ? fixedPalette(listedColor)
+    : orgName
+      ? paletteFor(orgName, mode, intensity)
+      : undefined;
 
   const config = vscode.workspace.getConfiguration("workbench");
   const existing = config.get<Record<string, string>>("colorCustomizations") ?? {};
