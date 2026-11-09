@@ -2,12 +2,12 @@
   "name": "headerhue",
   "displayName": "HeaderHue",
   "description": "Dynamic VS Code header color based on your project folder name.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "NOLANSARL",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/noahlanfrit/header-hue"
+    "url": "https://github.com/noah-lnt/header-hue"
   },
   "icon": "icon.png",
   "engines": {

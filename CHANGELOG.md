@@ -1,12 +1,17 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 — 2026-11-09
 
 ### Added
 
 - `headerHue.orgLevel` setting: colors the status bar after a folder above the
   project, so every project of the same organization shares one color. Off by
   default; its text meets WCAG AA like the title bar's.
+
+### Fixed
+
+- The Marketplace page's repository link pointed to a GitHub address that no
+  longer exists; it now opens the extension's repository.
 
 ## 0.4.0 — 2026-09-07
 
